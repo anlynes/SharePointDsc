@@ -98,7 +98,7 @@ function Set-TargetResource
             # Wait for Search Service Instance to come online
             $loopCount = 0
             $searchService = Get-SPEnterpriseSearchServiceInstance -Identity $searchServer 
-            while ($searchService.Status -ne "Online" -and $loopCount -lt 10) 
+            while ($searchService.Status -ne "Online" -and $loopCount -lt 20) 
             {
                 # Start the service, if needed
                 if ($searchService.Status -eq "Offline" -or $searchService.Status -eq "Disabled") 
@@ -107,11 +107,12 @@ function Set-TargetResource
                     Start-SPEnterpriseSearchServiceInstance -Identity $searchServer
                 }
 
+                $attempt = $loopCount+1
                 Write-Verbose -Message ("$([DateTime]::Now.ToShortTimeString()) - Waiting for " + `
                                         "search service instance to start on $searchServer " + `
-                                        "(waited $loopCount of 10 minutes)")
+                                        "(attempt $attempt of 20)")
                 $loopCount++
-                Start-Sleep -Seconds 60
+                Start-Sleep -Seconds 30
                 $searchService = Get-SPEnterpriseSearchServiceInstance -Identity $searchServer
             } 
         }
