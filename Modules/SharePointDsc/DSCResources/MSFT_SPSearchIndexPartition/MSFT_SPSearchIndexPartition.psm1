@@ -95,23 +95,25 @@ function Set-TargetResource
         # Ensure the search service instance is running on all servers
         foreach($searchServer in $AllSearchServers) 
         {
-            $searchService = Get-SPEnterpriseSearchServiceInstance -Identity $searchServer
-            if ($searchService.Status -eq "Offline" -or $searchService.Status -eq "Disabled")
-            {
-                Write-Verbose -Message "Start Search Service Instance"
-                Start-SPEnterpriseSearchServiceInstance -Identity $searchService
-            }
-
             # Wait for Search Service Instance to come online
             $loopCount = 0
             $searchService = Get-SPEnterpriseSearchServiceInstance -Identity $searchServer 
-            while ($searchService.Status -ne "Online" -and $loopCount -lt 20) 
+            while ($searchService.Status -ne "Online" -and $loopCount -lt 10) 
             {
-                Write-Verbose -Message "Waiting for service: $($searchService.TypeName)"
+                # Start the service, if needed
+                if ($searchService.Status -eq "Offline" -or $searchService.Status -eq "Disabled") 
+                {
+                    Write-Verbose -Message "Start Search Service Instance"
+                    Start-SPEnterpriseSearchServiceInstance -Identity $searchServer
+                }
+
+                Write-Verbose -Message ("$([DateTime]::Now.ToShortTimeString()) - Waiting for " + `
+                                        "search service instance to start on $searchServer " + `
+                                        "(waited $loopCount of 10 minutes)")
                 $loopCount++
-                Start-Sleep -Seconds 30
+                Start-Sleep -Seconds 60
                 $searchService = Get-SPEnterpriseSearchServiceInstance -Identity $searchServer
-            }
+            } 
         }
 
         if ($params.ContainsKey("RootDirectory") -eq $true) 
