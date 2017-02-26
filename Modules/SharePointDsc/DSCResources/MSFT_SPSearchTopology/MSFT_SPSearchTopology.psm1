@@ -241,7 +241,7 @@ function Set-TargetResource
                 $searchService = Get-SPEnterpriseSearchServiceInstance -Identity $searchServer    
             }
             
-            if($searchService.Status -eq "Offline") 
+            if ($searchService.Status -eq "Offline" -or $searchService.Status -eq "Disabled") 
             {
                 Write-Verbose -Message "Start Search Service Instance"
                 Start-SPEnterpriseSearchServiceInstance -Identity $searchServer
@@ -249,15 +249,22 @@ function Set-TargetResource
 
             # Wait for Search Service Instance to come online
             $loopCount = 0
-            $online = Get-SPEnterpriseSearchServiceInstance -Identity $searchServer 
-            while ($online.Status -ne "Online" -and $loopCount -lt 15) 
+            $searchService = Get-SPEnterpriseSearchServiceInstance -Identity $searchServer 
+            while ($searchService.Status -ne "Online" -and $loopCount -lt 10) 
             {
-                $online = Get-SPEnterpriseSearchServiceInstance -Identity $searchServer
                 Write-Verbose -Message ("$([DateTime]::Now.ToShortTimeString()) - Waiting for " + `
                                         "search service instance to start on $searchServer " + `
-                                        "(waited $loopCount of 15 minutes)")
+                                        "(waited $loopCount of 10 minutes)")
                 $loopCount++
                 Start-Sleep -Seconds 60
+                $searchService = Get-SPEnterpriseSearchServiceInstance -Identity $searchServer
+
+                # Handle cases where the server was not a member of the farm earlier
+                if ($searchService.Status -eq "Offline" -or $searchService.Status -eq "Disabled") 
+                {
+                    Write-Verbose -Message "Start Search Service Instance"
+                    Start-SPEnterpriseSearchServiceInstance -Identity $searchServer
+                }
             } 
         }
 

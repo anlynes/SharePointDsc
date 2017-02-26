@@ -96,23 +96,22 @@ function Set-TargetResource
         foreach($searchServer in $AllSearchServers) 
         {
             $searchService = Get-SPEnterpriseSearchServiceInstance -Identity $searchServer
-            if($searchService.Status -eq "Offline") 
+            if ($searchService.Status -eq "Offline" -or $searchService.Status -eq "Disabled")
             {
                 Write-Verbose -Message "Start Search Service Instance"
                 Start-SPEnterpriseSearchServiceInstance -Identity $searchService
             }
 
-            #Wait for Search Service Instance to come online
+            # Wait for Search Service Instance to come online
             $loopCount = 0
-            $online = Get-SPEnterpriseSearchServiceInstance -Identity $searchServer 
-            do 
+            $searchService = Get-SPEnterpriseSearchServiceInstance -Identity $searchServer 
+            while ($searchService.Status -ne "Online" -and $loopCount -lt 20) 
             {
-                $online = Get-SPEnterpriseSearchServiceInstance -Identity $searchServer 
-                Write-Verbose -Message "Waiting for service: $($online.TypeName)"
+                Write-Verbose -Message "Waiting for service: $($searchService.TypeName)"
                 $loopCount++
                 Start-Sleep -Seconds 30
-            } 
-            until ($online.Status -eq "Online" -or $loopCount -eq 20)
+                $searchService = Get-SPEnterpriseSearchServiceInstance -Identity $searchServer
+            }
         }
 
         if ($params.ContainsKey("RootDirectory") -eq $true) 
